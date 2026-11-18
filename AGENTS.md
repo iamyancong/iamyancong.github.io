@@ -4,7 +4,7 @@
 
 ## 项目
 
-王彦聪前端研发体系官网，部署在 <https://iamyancong.github.io/>（GitHub Pages 用户站，`base` 为 `/`）。
+「雨燕前端体系 · Yuyan Frontend」官网，部署在 <https://iamyancong.github.io/>（GitHub Pages 用户站，`base` 为 `/`）。
 
 技术栈：Vue 3 + TypeScript + Vite + vite-ssg；GSAP（ScrollTrigger、SplitText）+ Lenis；TresJS + three.js；Vue Flow。包管理器 pnpm 8，Node 22+。
 

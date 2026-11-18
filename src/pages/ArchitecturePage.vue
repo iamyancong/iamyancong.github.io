@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { useHead } from '@unhead/vue'
-import { defineAsyncComponent } from 'vue'
-import ClientOnly from '@/components/ClientOnly.vue'
-import { chainSteps, productMap, relations, type ProductId } from '@/data/products'
+import ArchMap from '@/components/ArchMap.vue'
+import { chainSteps } from '@/data/products'
 import { SITE } from '@/data/site'
 
-const ArchFlow = defineAsyncComponent(() => import('@/components/ArchFlow.vue'))
-
-const nameOf = (id: string) => (id === 'deploy' ? 'Nginx 部署' : productMap[id as ProductId].name)
 
 const deployRows = [
   { target: 'yss-ui 及 npm 包', build: 'GitHub Actions 门禁、自动发版到 npm', run: 'npm 安装，文档在 GitHub Pages' },
@@ -32,18 +28,11 @@ useHead({
     <header class="container">
       <p class="eyebrow">Architecture</p>
       <h1 class="section-title">架构全景</h1>
-      <p class="section-lead">以 YSS UI 为底座，向右流向部署。节点可点击，虚线表示规划中。</p>
+      <p class="section-lead">以 YSS UI 为底座，主干向右流向部署；SwiftVPN 属于研发基础设施，独立于交付链路。节点可点击，虚线表示规划中。</p>
     </header>
 
     <section class="container ap-flow">
-      <ClientOnly>
-        <ArchFlow height="72vh" />
-        <template #fallback>
-          <ul class="ap-fallback">
-            <li v-for="r in relations" :key="`${r.from}-${r.to}`">{{ nameOf(r.from) }} {{ r.planned ? '⇢' : '→' }} {{ nameOf(r.to) }}（{{ r.label }}）</li>
-          </ul>
-        </template>
-      </ClientOnly>
+      <ArchMap />
     </section>
 
     <section class="container ap-section">
@@ -80,19 +69,6 @@ useHead({
 
 .ap-flow {
   margin-top: 48px;
-}
-
-.ap-fallback {
-  min-height: 72vh;
-  margin: 0;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  list-style: none;
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  color: var(--text-2);
 }
 
 .ap-section {

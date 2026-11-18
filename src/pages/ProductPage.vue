@@ -2,7 +2,7 @@
 import { useHead } from '@unhead/vue'
 import { computed, ref } from 'vue'
 import ProductVisual from '@/components/visuals/ProductVisual.vue'
-import { downstreamOf, productMap, products, STATUS_LABEL, upstreamOf, type ProductId } from '@/data/products'
+import { downstreamOf, GROUP_LABEL, productMap, products, STATUS_LABEL, upstreamOf, type ProductId } from '@/data/products'
 import { SITE } from '@/data/site'
 import { gsap } from '@/motion/gsap'
 import { useTierAnimation } from '@/motion/useTierAnimation'
@@ -56,6 +56,7 @@ useTierAnimation(root, (_level, el) => {
       <div class="pd-meta">
         <span class="pill" :data-status="product.status">{{ STATUS_LABEL[product.status] }}</span>
         <span class="pd-eyebrow">{{ product.eyebrow }}</span>
+        <span v-if="product.group === 'infra'" class="pd-group">{{ GROUP_LABEL.infra }}</span>
       </div>
       <h1 class="pd-title">{{ product.name }}</h1>
       <p class="pd-tagline">{{ product.tagline }}</p>
@@ -131,6 +132,17 @@ useTierAnimation(root, (_level, el) => {
       </div>
     </section>
 
+    <section v-else-if="product.group === 'infra'" class="container pd-section pd-reveal">
+      <h2 class="pd-h2">在体系中的位置</h2>
+      <div class="pd-infra">
+        <p class="pd-infra-label">{{ GROUP_LABEL.infra }}</p>
+        <p>
+          SwiftVPN 不在「组件库 → 脚手架 → 模板 → 雨燕 → 部署」这条交付链路上，和 YSS UI 也是两条相互独立的产品线。它解决的是另一件事：
+          开发者在公司网络之外（居家、出差）时，安全地接入内网研发资源；在公司有线或无线网络内则无需使用。
+        </p>
+      </div>
+    </section>
+
     <nav class="container pd-pager" aria-label="产品切换">
       <RouterLink :to="`/products/${prev.id}`" class="pd-page">
         <span>上一个</span>
@@ -182,6 +194,16 @@ useTierAnimation(root, (_level, el) => {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.pd-group {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px dashed rgba(245, 158, 11, 0.5);
+  color: rgba(252, 211, 77, 0.95);
 }
 
 .pd-eyebrow {
@@ -281,6 +303,28 @@ dd {
   margin: 0;
   font-size: 15px;
   font-weight: 500;
+}
+
+.pd-infra {
+  padding: 22px 26px;
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  border-radius: var(--radius);
+  background: rgba(245, 158, 11, 0.04);
+  color: var(--text-2);
+  line-height: 1.75;
+  max-width: 860px;
+}
+
+.pd-infra p {
+  margin: 0;
+}
+
+.pd-infra .pd-infra-label {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(252, 211, 77, 0.95);
 }
 
 .pd-section {

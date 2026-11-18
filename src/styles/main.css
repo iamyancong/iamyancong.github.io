@@ -1,4 +1,9 @@
 :root {
+  /* 全站统一内容容器：标题、正文、画布、卡片轨道都对齐到这条左右边线 */
+  --container: clamp(1280px, 75vw, 1480px);
+  --gutter: clamp(20px, 4vw, 56px);
+  /* 容器左边线到视口左缘的距离，横向轨道用它对齐首张卡片 */
+  --container-inset: max(var(--gutter), calc((100vw - var(--container)) / 2));
   --bg: #05060a;
   --bg-2: #0a0c14;
   --panel: rgba(255, 255, 255, 0.04);
@@ -103,14 +108,8 @@ button {
 }
 
 .container {
-  width: min(1200px, calc(100% - 48px));
+  width: min(var(--container), calc(100% - 2 * var(--gutter)));
   margin-inline: auto;
-}
-
-@media (max-width: 640px) {
-  .container {
-    width: calc(100% - 40px);
-  }
 }
 
 .section {
@@ -276,4 +275,9 @@ code,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* 见 index.html：入场动画接管前隐藏首屏文字 */
+.motion-boot .hero-content {
+  opacity: 0;
 }

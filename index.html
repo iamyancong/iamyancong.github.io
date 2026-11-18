@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#05060a" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      // 首屏入场动画接管前先隐藏首屏文字，避免「先出现静态文字、再被拆字重播」的闪烁。
+      // 减弱动效时不隐藏；脚本加载失败时 2.5 秒后自动恢复，保证内容可读。
+      ;(function () {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+        var root = document.documentElement
+        root.classList.add('motion-boot')
+        setTimeout(function () {
+          root.classList.remove('motion-boot')
+        }, 2500)
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

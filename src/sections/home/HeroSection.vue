@@ -17,6 +17,18 @@ const showScene = computed(() => tier.value === 'full')
 const sceneReady = ref(false)
 const scatter = ref(0)
 const pointer = ref({ x: 0, y: 0 })
+/** 雨燕可用的竖向区域（占首屏高度的比例）：导航下沿到眉标上沿 */
+const birdFrame = ref({ top: 0.1, bottom: 0.45 })
+
+function measureFrame() {
+  const hero = root.value
+  const eyebrow = hero?.querySelector<HTMLElement>('.hero-eyebrow')
+  if (!hero || !eyebrow) return
+  const h = hero.getBoundingClientRect().height
+  const top = 84 / h
+  const bottom = (eyebrow.offsetTop - 18) / h
+  birdFrame.value = { top, bottom: Math.max(top + 0.18, bottom) }
+}
 
 function onPointer(e: PointerEvent) {
   pointer.value = {
@@ -25,21 +37,28 @@ function onPointer(e: PointerEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('pointermove', onPointer, { passive: true }))
-onBeforeUnmount(() => window.removeEventListener('pointermove', onPointer))
+onMounted(() => {
+  window.addEventListener('pointermove', onPointer, { passive: true })
+  window.addEventListener('resize', measureFrame, { passive: true })
+  measureFrame()
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('pointermove', onPointer)
+  window.removeEventListener('resize', measureFrame)
+})
 
 useTierAnimation(root, (level, el) => {
   const title = el.querySelector<HTMLElement>('.hero-title')
-  const split = title ? SplitText.create(title, { type: 'chars', charsClass: 'hero-char' }) : null
+  // mask: 'chars' 给每个字套一层裁切框，字从基线下方升起；只用 2D 位移与透明度
+  const split = title ? SplitText.create(title, { type: 'chars', charsClass: 'hero-char', mask: 'chars' }) : null
   const intro = gsap.timeline()
   if (split) {
     intro.from(split.chars, {
-      yPercent: 110,
+      yPercent: 105,
       opacity: 0,
-      rotateX: -70,
       duration: 1.1,
       ease: 'expo.out',
-      stagger: 0.045,
+      stagger: 0.05,
     })
   }
   intro
@@ -47,6 +66,8 @@ useTierAnimation(root, (level, el) => {
     .from('.hero-sub', { opacity: 0, y: 24, duration: 0.9, ease: 'power3.out' }, 0.45)
     .from('.hero-actions', { opacity: 0, y: 20, duration: 0.8, ease: 'power3.out' }, 0.6)
     .from('.hero-scroll', { opacity: 0, duration: 0.8 }, 1)
+  // 动画初始状态已就位，再撤掉首屏的预隐藏
+  document.documentElement.classList.remove('motion-boot')
 
   // 滚动离场：文字上移淡出，3D 粒子随进度散开
   gsap.to('.hero-content', {
@@ -77,13 +98,13 @@ function explore() {
     <ClientOnly>
       <div v-if="showScene" class="hero-scene" :class="{ ready: sceneReady }">
         <Suspense @resolve="sceneReady = true">
-          <HeroScene :scatter="scatter" :pointer-x="pointer.x" :pointer-y="pointer.y" />
+          <HeroScene :scatter="scatter" :pointer-x="pointer.x" :pointer-y="pointer.y" :frame-top="birdFrame.top" :frame-bottom="birdFrame.bottom" />
         </Suspense>
       </div>
     </ClientOnly>
 
     <div class="hero-content container">
-      <p class="hero-eyebrow eyebrow">Frontend Architecture · iamyancong</p>
+      <p class="hero-eyebrow eyebrow">{{ SITE.englishName }} · {{ SITE.name }}</p>
       <h1 id="hero-title" class="hero-title">前端研发体系</h1>
       <p class="hero-sub">{{ SITE.tagline }}</p>
       <div class="hero-actions">
@@ -157,22 +178,21 @@ function explore() {
 .hero-title {
   margin: 22px 0 0;
   font-size: clamp(56px, 10vw, 140px);
-  line-height: 1;
+  line-height: 1.04;
   font-weight: 800;
   letter-spacing: -0.03em;
-  background: linear-gradient(180deg, #ffffff 30%, rgba(214, 222, 255, 0.62) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  perspective: 600px;
+  color: #fff;
+  /*
+   * 渐变用遮罩实现，不用 background-clip: text：
+   * 逐字动画会让每个字符成为独立合成层，Chromium/WebKit 在这种情况下
+   * 会把 background-clip: text 的裁剪画到错误位置，出现白色叠字方块。
+   */
+  -webkit-mask-image: linear-gradient(180deg, #000 35%, rgba(0, 0, 0, 0.66) 100%);
+  mask-image: linear-gradient(180deg, #000 35%, rgba(0, 0, 0, 0.66) 100%);
 }
 
 .hero-title :deep(.hero-char) {
-  display: inline-block;
-  background: inherit;
-  -webkit-background-clip: text;
-  background-clip: text;
-  transform-origin: 50% 100%;
+  will-change: transform, opacity;
 }
 
 .hero-sub {

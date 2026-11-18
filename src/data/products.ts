@@ -16,6 +16,14 @@ export type ProductId =
 
 export type ProductStatus = 'live' | 'open-source' | 'research'
 
+/** chain：研发交付链路上的产品；infra：研发基础设施，独立于链路之外 */
+export type ProductGroup = 'chain' | 'infra'
+
+export const GROUP_LABEL: Record<ProductGroup, string> = {
+  chain: '研发交付链路',
+  infra: '研发基础设施 · 独立工具',
+}
+
 export interface ProductLink {
   label: string
   href: string
@@ -29,6 +37,7 @@ export interface Product {
   tagline: string
   summary: string
   status: ProductStatus
+  group: ProductGroup
   /** 主题强调色，仅用于装饰 */
   accent: string
   capabilities: { title: string; detail: string }[]
@@ -53,6 +62,7 @@ export const products: Product[] = [
     tagline: '企业级中后台组件库，整个体系的底座。',
     summary: '基于 Vue 3、Ant Design Vue 与 VXE-Table 的企业级中后台组件库，内置表格、表单、主题与 Hooks 最佳实践。',
     status: 'live',
+    group: 'chain',
     accent: '#4f7cff',
     capabilities: [
       { title: '大数据表格', detail: 'YTable / YEditTable：虚拟滚动、服务端分页、行拖拽排序、单元格动态校验与行内编辑。' },
@@ -83,6 +93,7 @@ export const products: Product[] = [
     tagline: '让 Coding Agent 查阅为先、按规范生成代码。',
     summary: '把组件文档、官方 Demo 和业务开发规范交给 AI 工具按需查询，不靠模型记忆猜组件配置。',
     status: 'live',
+    group: 'chain',
     accent: '#8b5cf6',
     capabilities: [
       { title: '@yss-ui/mcp', detail: 'MCP Server，离线索引组件 API、171+ 官方 Demo 与 30+ Skills，零网络、确定性输出。' },
@@ -112,6 +123,7 @@ export const products: Product[] = [
     tagline: '一条命令，生成标准微应用。',
     summary: '在本地生成 Vue 3 + TypeScript + Vite + qiankun 微前端子应用骨架，源码在 yss-ui 仓库的 packages/create。',
     status: 'live',
+    group: 'chain',
     accent: '#22d3ee',
     capabilities: [
       { title: '自动推导', detail: '只填中英文名，激活路由、端口、接口前缀、代理目标自动推导并标注来源。' },
@@ -140,6 +152,7 @@ export const products: Product[] = [
     tagline: '可接入、可独立运行的微应用模板。',
     summary: '脚手架与雨燕默认使用的 Vue 3 微应用模板，既能作为 qiankun 子应用接入，也能独立运行。',
     status: 'live',
+    group: 'chain',
     accent: '#38bdf8',
     capabilities: [
       { title: '类型安全接口', detail: 'OpenAPI + Orval 自动生成类型安全的 API 客户端。' },
@@ -162,6 +175,7 @@ export const products: Product[] = [
     tagline: '微应用脚手架 + 运维部署，一个客户端搞定。',
     summary: '面向前端团队的桌面端一站式工具，把创建微应用、仓库管理、发布与 Nginx 管理整合到一个本地客户端。',
     status: 'live',
+    group: 'chain',
     accent: '#34d399',
     capabilities: [
       { title: '创建微应用', detail: '拉取模板、变量替换、Git 初始化、建仓推送，NDJSON 流式回传进度。' },
@@ -181,31 +195,6 @@ export const products: Product[] = [
     ],
   },
   {
-    id: 'swiftvpn',
-    name: '雨燕 SwiftVPN',
-    short: 'SwiftVPN',
-    eyebrow: 'Dual-Channel VPN',
-    tagline: '两条 VPN 并行，流量各走各路。',
-    summary: '多 VPN 并行连接与智能分流的桌面客户端，解决异地混合办公时需要同时连接两套内网的问题。',
-    status: 'live',
-    accent: '#f59e0b',
-    capabilities: [
-      { title: '双通道并行', detail: 'Fortinet 与 aTrust 两路同时连接、独立启停或一键断开。' },
-      { title: '智能分流', detail: '按内网路由分流，不改写系统代理；接口与路由都就绪才显示已连接。' },
-      { title: '凭证保护', detail: '提权凭证只在内存暂存、不落盘；内嵌验证码与二次认证输入。' },
-      { title: '自动更新', detail: '内置版本检测、断点续传与热重启更新。' },
-    ],
-    stack: ['Tauri 2（Rust）', 'Vue 3', 'Vite 7', 'YSS UI', 'openfortivpn', 'zju-connect'],
-    facts: [
-      { label: '最新版本', value: 'v1.0.25（2026-11-10）' },
-      { label: '平台', value: 'macOS（Apple 芯片 / Intel）· Windows · Linux 规划中' },
-    ],
-    links: [
-      { label: 'GitHub', href: 'https://github.com/iamyancong/yuyan-vpn' },
-      { label: '下载', href: 'https://github.com/iamyancong/yuyan-vpn/releases' },
-    ],
-  },
-  {
     id: 'qiankun',
     name: 'qiankun 微前端',
     short: 'qiankun',
@@ -213,6 +202,7 @@ export const products: Product[] = [
     tagline: 'PC 端微前端直接采用开源 qiankun。',
     summary: '不自研基座，业务微应用以 qiankun 子应用接入主应用。qiankun 是蚂蚁开源的微前端方案。',
     status: 'open-source',
+    group: 'chain',
     accent: '#a78bfa',
     capabilities: [
       { title: '基于 single-spa', detail: '主应用按激活路由加载子应用。' },
@@ -235,6 +225,7 @@ export const products: Product[] = [
     tagline: '一套代码覆盖 H5、App 与小程序。',
     summary: '覆盖 H5、Capacitor App 与微信小程序 web-view 壳，未来拆出移动端微应用模板，并在雨燕「创建微应用」中支持。',
     status: 'research',
+    group: 'chain',
     accent: '#f472b6',
     capabilities: [
       { title: '三端一体', detail: 'H5、Capacitor App 与小程序 web-view 壳共用一套页面。' },
@@ -248,6 +239,36 @@ export const products: Product[] = [
       { label: '下一步', value: '拆出移动端微应用模板，雨燕支持创建' },
     ],
     links: [],
+  },
+  {
+    id: 'swiftvpn',
+    name: '雨燕 SwiftVPN',
+    short: 'SwiftVPN',
+    eyebrow: 'Remote Access Client',
+    tagline: '人在公司网络之外，也能接入内网研发资源。',
+    summary:
+      '连接公司内网的桌面客户端。在公司有线或无线网络内不需要它；身处公司网络之外、需要访问内网研发资源时再连接。它是独立的接入工具，不属于组件库与研发交付链路。',
+    status: 'live',
+    group: 'infra',
+    accent: '#f59e0b',
+    capabilities: [
+      { title: '按需连接', detail: '在公司网络内直接访问内网，无需开启；在外网需要访问内网时一键连接，用完即断。' },
+      { title: '多通道并行', detail: '支持 Fortinet 与 aTrust 两类接入同时连接，可独立启停或一键全部断开。' },
+      { title: '智能分流', detail: '只有内网流量走 VPN，其余流量照常直连，不改写系统代理；接口与路由都就绪才显示已连接。' },
+      { title: '凭证保护', detail: '提权凭证只在内存暂存、不落盘；内嵌验证码与二次认证输入。' },
+      { title: '自动更新', detail: '内置版本检测、断点续传与热重启更新。' },
+    ],
+    stack: ['Tauri 2（Rust）', 'Vue 3', 'Vite 7', 'openfortivpn', 'zju-connect'],
+    facts: [
+      { label: '定位', value: '研发基础设施 · 外网接入内网的桌面客户端' },
+      { label: '何时需要', value: '仅在公司网络之外访问内网时使用' },
+      { label: '最新版本', value: 'v1.0.25（2026-11-10）' },
+      { label: '平台', value: 'macOS（Apple 芯片 / Intel）· Windows · Linux 规划中' },
+    ],
+    links: [
+      { label: 'GitHub', href: 'https://github.com/iamyancong/yuyan-vpn' },
+      { label: '下载', href: 'https://github.com/iamyancong/yuyan-vpn/releases' },
+    ],
   },
 ]
 
@@ -266,7 +287,6 @@ export const relations: Relation[] = [
   { from: 'yss-ui', to: 'ai-kit', label: '文档与规范索引' },
   { from: 'yss-ui', to: 'microapp-template', label: '组件依赖' },
   { from: 'yss-ui', to: 'yuyan', label: '组件依赖' },
-  { from: 'yss-ui', to: 'swiftvpn', label: '组件依赖' },
   { from: 'ai-kit', to: 'create-yss-app', label: 'Skill 调用' },
   { from: 'create-yss-app', to: 'microapp-template', label: '拉取模板' },
   { from: 'microapp-template', to: 'yuyan', label: '远程模板' },
