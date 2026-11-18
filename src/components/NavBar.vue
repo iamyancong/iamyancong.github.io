@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { products } from '@/data/products'
-import { LINKS } from '@/data/site'
+import { LINKS, SITE } from '@/data/site'
 import { scrollToTarget } from '@/motion/smoothScroll'
 
 const route = useRoute()
@@ -62,7 +62,7 @@ watch(menuOpen, (open) => {
           </defs>
           <path d="M3 13c5-1 9 0 13 4 4-6 8-9 13-10-3 4-6 8-8 14-1 4-4 6-7 6l2-5c-4-1-8-4-13-9z" fill="url(#nav-g)" />
         </svg>
-        <span class="brand-text">iamyancong</span>
+        <span class="brand-text">{{ SITE.shortName }}</span>
       </RouterLink>
 
       <ul class="nav-links">

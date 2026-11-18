@@ -21,7 +21,7 @@ export default defineConfig({
   },
   ssr: {
     // 这些包只在客户端动态加载，SSG 渲染阶段不打包进服务端产物
-    noExternal: ['@vue-flow/core', '@vue-flow/background', '@vue-flow/controls'],
+    noExternal: ['@vue-flow/core', '@vue-flow/background'],
   },
   ssgOptions: {
     script: 'async',

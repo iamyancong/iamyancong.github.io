@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import ProductVisual from '@/components/visuals/ProductVisual.vue'
-import { products, STATUS_LABEL } from '@/data/products'
+import { GROUP_LABEL, products, STATUS_LABEL } from '@/data/products'
 import { gsap } from '@/motion/gsap'
 import { useTierAnimation } from '@/motion/useTierAnimation'
 
@@ -77,6 +77,7 @@ useTierAnimation(root, (level, el) => {
             <span class="pill" :data-status="p.status">{{ STATUS_LABEL[p.status] }}</span>
             <span class="p-eyebrow">{{ p.eyebrow }}</span>
           </div>
+          <p v-if="p.group === 'infra'" class="p-group">{{ GROUP_LABEL.infra }}</p>
           <h3 class="p-name">{{ p.name }}</h3>
           <p class="p-tagline">{{ p.tagline }}</p>
           <div class="p-visual">
@@ -147,7 +148,7 @@ useTierAnimation(root, (level, el) => {
   margin-top: 36px;
   display: flex;
   gap: 24px;
-  padding-left: max(24px, calc((100vw - 1200px) / 2));
+  padding-left: var(--container-inset);
   padding-right: 24px;
   width: max-content;
   will-change: transform;
@@ -188,6 +189,14 @@ useTierAnimation(root, (level, el) => {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-3);
+}
+
+.p-group {
+  margin: 16px 0 -8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(252, 211, 77, 0.9);
 }
 
 .p-name {
@@ -287,8 +296,7 @@ html:not([data-motion='full']) .products .p-track {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
   padding: 0;
   margin-inline: auto;
-  max-width: 1200px;
-  width: min(1200px, calc(100% - 48px));
+  width: min(var(--container), calc(100% - 2 * var(--gutter)));
 }
 
 html:not([data-motion='full']) .products .p-card {

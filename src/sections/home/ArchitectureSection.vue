@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref } from 'vue'
-import ClientOnly from '@/components/ClientOnly.vue'
-import { layers, productMap, relations, type ProductId } from '@/data/products'
+import { ref } from 'vue'
+import ArchMap from '@/components/ArchMap.vue'
+import { layers, productMap, type ProductId } from '@/data/products'
 import { gsap } from '@/motion/gsap'
 import { useTierAnimation } from '@/motion/useTierAnimation'
 
-const ArchFlow = defineAsyncComponent(() => import('@/components/ArchFlow.vue'))
 
 const root = ref<HTMLElement | null>(null)
 const active = ref(layers.length - 1)
 
 const accentOf = (id: string) => (id === 'deploy' ? '#94a3b8' : productMap[id as ProductId].accent)
-const linkOf = (id: string) => (id === 'deploy' ? null : `/products/${id}`)
 
 useTierAnimation(root, (level, el) => {
   const plates = gsap.utils.toArray<HTMLElement>('.plate', el)
@@ -75,6 +73,10 @@ useTierAnimation(root, (level, el) => {
               </span>
             </li>
           </ol>
+          <RouterLink to="/products/swiftvpn" class="layer-aside">
+            <span class="layer-aside-label">链路之外 · 研发基础设施</span>
+            <span class="layer-aside-text">雨燕 SwiftVPN：人在公司网络之外时接入内网研发资源，与组件库和交付链路相互独立。</span>
+          </RouterLink>
         </div>
         <div class="stack-wrap" aria-hidden="true">
           <div class="stack-glow" />
@@ -93,22 +95,10 @@ useTierAnimation(root, (level, el) => {
     <div class="container flow-section">
       <div class="flow-head">
         <h3 class="flow-title">体系全景图</h3>
-        <p class="flow-lead">每个节点都是一个产品，点击进入详情；箭头是真实的依赖与流转关系。</p>
+        <p class="flow-lead">每个节点都是一个产品，点击进入详情；箭头是真实的依赖与流转关系，虚线框里是独立的研发基础设施。</p>
       </div>
       <div class="flow-wrap">
-        <ClientOnly>
-          <ArchFlow height="clamp(380px, 46vw, 580px)" />
-          <template #fallback>
-            <ul class="flow-fallback">
-              <li v-for="r in relations" :key="`${r.from}-${r.to}`">
-                <component :is="linkOf(r.from) ? 'RouterLink' : 'span'" :to="linkOf(r.from) ?? undefined">{{ r.from === 'deploy' ? 'Nginx 部署' : productMap[r.from as ProductId].name }}</component>
-                <span class="arrow">{{ r.planned ? '⇢' : '→' }}</span>
-                <component :is="linkOf(r.to) ? 'RouterLink' : 'span'" :to="linkOf(r.to) ?? undefined">{{ r.to === 'deploy' ? 'Nginx 部署' : productMap[r.to as ProductId].name }}</component>
-                <span class="rel">{{ r.label }}</span>
-              </li>
-            </ul>
-          </template>
-        </ClientOnly>
+        <ArchMap />
       </div>
     </div>
   </section>
@@ -254,6 +244,30 @@ useTierAnimation(root, (level, el) => {
   color: var(--text-2);
 }
 
+.layer-aside {
+  margin-top: 18px;
+  display: grid;
+  gap: 4px;
+  max-width: 480px;
+  padding: 12px 16px;
+  border: 1px dashed rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.layer-aside-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(252, 211, 77, 0.9);
+}
+
+.layer-aside-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
 .flow-section {
   margin-top: 40px;
 }
@@ -277,37 +291,6 @@ useTierAnimation(root, (level, el) => {
   margin: 0;
   color: var(--text-2);
   max-width: 520px;
-}
-
-.flow-fallback {
-  margin: 0;
-  padding: 24px;
-  list-style: none;
-  display: grid;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  min-height: clamp(380px, 46vw, 580px);
-}
-
-.flow-fallback li {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: baseline;
-}
-
-.flow-fallback a {
-  font-weight: 600;
-}
-
-.arrow {
-  color: var(--text-3);
-}
-
-.rel {
-  font-size: 13px;
-  color: var(--text-3);
 }
 
 @media (max-width: 1023px) {

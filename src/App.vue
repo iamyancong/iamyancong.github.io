@@ -21,6 +21,15 @@ onMounted(() => {
   if (document.readyState === 'complete') refresh()
   else window.addEventListener('load', refresh, { once: true })
   void document.fonts?.ready.then(refresh)
+
+  // 没有首屏入场动画可接管时（非首页或 static 档），立即撤掉 index.html 的预隐藏
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      if (tier.value === 'static' || !document.querySelector('.hero-title')) {
+        document.documentElement.classList.remove('motion-boot')
+      }
+    }),
+  )
 })
 
 useHead({

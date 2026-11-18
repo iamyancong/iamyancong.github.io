@@ -32,7 +32,7 @@ const year = 2026
       </div>
     </div>
     <div class="container footer-bottom">
-      <span>© {{ year }} {{ SITE.author }} · {{ SITE.role }}</span>
+      <span>© {{ year }} {{ SITE.name }} · {{ SITE.englishName }}</span>
       <span>Vite · Vue 3 · GSAP · Lenis · TresJS · Vue Flow</span>
     </div>
   </footer>

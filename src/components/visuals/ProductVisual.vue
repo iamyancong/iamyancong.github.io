@@ -61,18 +61,20 @@ const tableRows = [
       <p class="v-caption">创建微应用 · 流式进度</p>
     </div>
 
-    <!-- SwiftVPN：双通道 -->
+    <!-- SwiftVPN：公司网络内直连，外网时经 VPN 接入内网 -->
     <svg v-else-if="id === 'swiftvpn'" class="v-vpn" viewBox="0 0 320 180" aria-hidden="true">
-      <circle cx="40" cy="90" r="16" class="node" />
-      <text x="40" y="128" class="lbl">本机</text>
-      <circle cx="280" cy="45" r="14" class="node a" />
-      <text x="280" y="80" class="lbl">内网 A</text>
-      <circle cx="280" cy="135" r="14" class="node b" />
-      <text x="280" y="170" class="lbl">内网 B</text>
-      <path d="M56 86 C150 40 200 45 266 45" class="line a" />
-      <path d="M56 94 C150 140 200 135 266 135" class="line b" />
-      <text x="160" y="40" class="tag">Fortinet</text>
-      <text x="160" y="152" class="tag">aTrust</text>
+      <circle cx="40" cy="42" r="14" class="node b" />
+      <text x="40" y="74" class="lbl">公司网络内</text>
+      <circle cx="40" cy="130" r="14" class="node a" />
+      <text x="40" y="162" class="lbl">公司网络外</text>
+      <circle cx="276" cy="86" r="18" class="node res" />
+      <text x="276" y="124" class="lbl">内网研发资源</text>
+      <path d="M54 42 C150 42 200 78 258 84" class="line direct" />
+      <path d="M54 130 C150 130 200 96 258 90" class="line a" />
+      <text x="146" y="34" class="tag">直连 · 无需 VPN</text>
+      <rect x="132" y="112" width="26" height="20" rx="5" class="lock" />
+      <path d="M139 112 v-5 a6 6 0 0 1 12 0 v5" class="lock-arc" />
+      <text x="146" y="152" class="tag">连接 SwiftVPN</text>
     </svg>
 
     <!-- qiankun：嵌套容器 -->
@@ -276,8 +278,27 @@ const tableRows = [
   stroke: #f59e0b;
 }
 
-.v-vpn .line.b {
+.v-vpn .line.direct {
   stroke: #22d3ee;
+  stroke-dasharray: none;
+  animation: none;
+  opacity: 0.7;
+}
+
+.v-vpn .node.res {
+  stroke: rgba(143, 179, 255, 0.9);
+  fill: rgba(79, 124, 255, 0.16);
+}
+
+.v-vpn .lock {
+  fill: rgba(245, 158, 11, 0.2);
+  stroke: #f59e0b;
+}
+
+.v-vpn .lock-arc {
+  fill: none;
+  stroke: #f59e0b;
+  stroke-width: 1.6;
 }
 
 .v-vpn .lbl,

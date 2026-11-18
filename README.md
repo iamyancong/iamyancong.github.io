@@ -1,8 +1,8 @@
-# 王彦聪 · 前端研发体系官网
+# 雨燕前端体系 · Yuyan Frontend
 
 线上地址：<https://iamyancong.github.io/>
 
-这个站点是前端研发体系的统一门面：用一张全景图串起 YSS UI 组件库、AI 研发套件、create-yss-app 脚手架、微应用模板、雨燕 Yuyan 研发运维平台、雨燕 SwiftVPN、qiankun 微前端与移动端方案，并提供每个产品的详情页与演进路线。
+这个站点是前端研发体系的统一门面：用一张全景图串起 YSS UI 组件库、AI 研发套件、create-yss-app 脚手架、微应用模板、雨燕 Yuyan 研发运维平台、qiankun 微前端与移动端方案，并提供每个产品的详情页与演进路线。雨燕 SwiftVPN 作为研发基础设施单独列出：在公司网络外接入内网研发资源，不在交付链路上。
 
 组件库文档仍在 [YSS UI 文档站](https://iamyancong.github.io/yss-ui/)，两边互相跳转。
 

@@ -1,34 +1,76 @@
 <script setup lang="ts">
 import { Background } from '@vue-flow/background'
-import { Controls } from '@vue-flow/controls'
-import { Handle, MarkerType, Position, useVueFlow, VueFlow, type Edge, type Node, type NodeMouseEvent } from '@vue-flow/core'
+import {
+  BaseEdge,
+  Handle,
+  MarkerType,
+  Position,
+  useVueFlow,
+  VueFlow,
+  type Edge,
+  type EdgeProps,
+  type Node,
+  type NodeMouseEvent,
+} from '@vue-flow/core'
 import '@vue-flow/core/dist/style.css'
-import '@vue-flow/controls/dist/style.css'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { productMap, relations, STATUS_LABEL, type GraphNodeId, type ProductId } from '@/data/products'
+import { GROUP_LABEL, productMap, relations, STATUS_LABEL, type GraphNodeId, type ProductId } from '@/data/products'
 
-withDefaults(defineProps<{ height?: string }>(), { height: '560px' })
+withDefaults(defineProps<{ height?: string }>(), { height: 'auto' })
 
 const router = useRouter()
-const { fitView } = useVueFlow()
+const { fitView, zoomIn, zoomOut } = useVueFlow()
+const box = ref<HTMLElement | null>(null)
+
+/** fitView 留白尽量小，让节点铺满画布 */
+const FIT = { padding: 0.035 }
+let ro: ResizeObserver | undefined
 
 function onReady() {
-  void fitView({ padding: 0.06 })
+  void fitView(FIT)
   // 全景图挂载后页面高度可能变化，通知滚动动画重新测量
   void import('@/motion/gsap').then(({ ScrollTrigger }) => ScrollTrigger.refresh())
 }
 
-/** 手工布局：左侧底座，向右流向部署 */
-const POSITIONS: Record<GraphNodeId, { x: number; y: number }> = {
-  'yss-ui': { x: 0, y: 220 },
-  'ai-kit': { x: 270, y: 30 },
-  swiftvpn: { x: 270, y: 430 },
-  'create-yss-app': { x: 540, y: 30 },
-  qiankun: { x: 540, y: 290 },
-  'microapp-template': { x: 810, y: 170 },
-  mobile: { x: 810, y: 430 },
-  yuyan: { x: 1080, y: 220 },
-  deploy: { x: 1350, y: 220 },
+onMounted(() => {
+  if (!box.value || typeof ResizeObserver === 'undefined') return
+  ro = new ResizeObserver(() => void fitView(FIT))
+  ro.observe(box.value)
+})
+onBeforeUnmount(() => ro?.disconnect())
+
+/**
+ * 网格布局（列 × 行），长宽比约 2.15:1，与画布比例一致，fitView 后几乎没有空边。
+ *   行 0：AI 研发套件 → create-yss-app            Nginx 部署
+ *   行 1：YSS UI ──→ 微应用模板 ──→ 雨燕 Yuyan（主干）
+ *   行 2：[研发基础设施：SwiftVPN]  qiankun        移动端（规划）
+ */
+const COL = 340
+const ROW = 230
+const NODE_W = 260
+const GRID: Record<GraphNodeId, [number, number]> = {
+  'ai-kit': [1, 0],
+  'create-yss-app': [2, 0],
+  deploy: [3, 0],
+  'yss-ui': [0, 1],
+  'microapp-template': [2, 1],
+  yuyan: [3, 1],
+  swiftvpn: [0, 2],
+  qiankun: [1, 2],
+  mobile: [3, 2],
+}
+
+/** 非默认走线：竖向连接与绕行通道 */
+const ROUTES: Record<string, { sourceHandle?: string; targetHandle?: string; lane?: number }> = {
+  'create-yss-app-microapp-template': { sourceHandle: 's-b', targetHandle: 't-t' },
+  'qiankun-microapp-template': { targetHandle: 't-b' },
+  // 从顶部分出，避开下方的绕行通道
+  'yss-ui-ai-kit': { sourceHandle: 's-t' },
+  'yuyan-deploy': { sourceHandle: 's-t', targetHandle: 't-b' },
+  'mobile-yuyan': { sourceHandle: 's-t', targetHandle: 't-b' },
+  // YSS UI → 雨燕：走第 0、1 行之间的通道，不从微应用模板背后穿过
+  'yss-ui-yuyan': { lane: ROW * 0.74 },
 }
 
 interface NodeData {
@@ -41,12 +83,14 @@ interface NodeData {
   clickable: boolean
 }
 
-const nodes: Node<NodeData>[] = (Object.keys(POSITIONS) as GraphNodeId[]).map((id) => {
+const pos = (id: GraphNodeId) => ({ x: GRID[id][0] * COL, y: GRID[id][1] * ROW })
+
+const productNodes: Node<NodeData>[] = (Object.keys(GRID) as GraphNodeId[]).map((id) => {
   if (id === 'deploy') {
     return {
       id,
       type: 'arch',
-      position: POSITIONS[id],
+      position: pos(id),
       data: { id, name: 'Nginx 部署', sub: '按路径前缀发布 · 可回滚', accent: '#94a3b8', clickable: false },
     }
   }
@@ -54,7 +98,7 @@ const nodes: Node<NodeData>[] = (Object.keys(POSITIONS) as GraphNodeId[]).map((i
   return {
     id,
     type: 'arch',
-    position: POSITIONS[id],
+    position: pos(id),
     data: {
       id,
       name: p.name,
@@ -67,61 +111,126 @@ const nodes: Node<NodeData>[] = (Object.keys(POSITIONS) as GraphNodeId[]).map((i
   }
 })
 
-const edges: Edge[] = relations.map((r) => ({
-  id: `${r.from}-${r.to}`,
-  source: r.from,
-  target: r.to,
-  label: r.label,
-  type: 'default',
-  animated: !r.planned,
-  class: r.planned ? 'is-planned' : '',
-  markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: r.planned ? 'rgba(244,114,182,0.7)' : 'rgba(143,179,255,0.8)' },
-}))
+// 研发基础设施分组框：SwiftVPN 独立于交付链路，没有任何连线
+const zone: Node = {
+  id: 'zone-infra',
+  type: 'zone',
+  position: { x: pos('swiftvpn').x - 22, y: pos('swiftvpn').y - 50 },
+  data: { label: GROUP_LABEL.infra },
+  zIndex: -1,
+  selectable: false,
+  draggable: false,
+  focusable: false,
+  style: { width: `${NODE_W + 44}px`, height: '212px' },
+}
+
+const nodes: Node[] = [zone, ...productNodes]
+
+const edges: Edge[] = relations.map((r) => {
+  const key = `${r.from}-${r.to}`
+  const route = ROUTES[key] ?? {}
+  const color = r.planned ? 'rgba(244,114,182,0.75)' : 'rgba(143,179,255,0.85)'
+  return {
+    id: key,
+    source: r.from,
+    target: r.to,
+    sourceHandle: route.sourceHandle ?? 's-r',
+    targetHandle: route.targetHandle ?? 't-l',
+    label: r.label,
+    type: route.lane === undefined ? 'default' : 'lane',
+    data: { lane: route.lane },
+    animated: !r.planned,
+    class: r.planned ? 'is-planned' : '',
+    markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color },
+  }
+})
+
+/** 通道走线：水平出发 → 过渡到通道高度 → 沿通道 → 过渡回目标高度 */
+function lanePath(e: EdgeProps) {
+  const lane = (e.data as { lane: number }).lane
+  const { sourceX: sx, sourceY: sy, targetX: tx, targetY: ty } = e
+  const r = 46
+  const d = [
+    `M ${sx},${sy}`,
+    `C ${sx + r},${sy} ${sx + r},${lane} ${sx + r * 2},${lane}`,
+    `L ${tx - r * 2},${lane}`,
+    `C ${tx - r},${lane} ${tx - r},${ty} ${tx},${ty}`,
+  ].join(' ')
+  return { d, x: (sx + tx) / 2, y: lane }
+}
 
 function onNodeClick({ node }: NodeMouseEvent) {
+  if (node.type !== 'arch') return
   const data = node.data as NodeData
   if (data.clickable) void router.push(`/products/${data.id as ProductId}`)
 }
 </script>
 
 <template>
-  <div class="flow" :style="{ height }">
-    <VueFlow
-      :nodes="nodes"
-      :edges="edges"
-      :fit-view-on-init="false"
-      :min-zoom="0.12"
-      :max-zoom="1.6"
-      :zoom-on-scroll="false"
-      :pan-on-scroll="false"
-      :prevent-scrolling="false"
-      :nodes-connectable="false"
-      :elements-selectable="false"
-      :default-edge-options="{ type: 'default' }"
-      @node-click="onNodeClick"
-      @nodes-initialized="onReady"
-    >
-      <template #node-arch="{ data }">
-        <div
-          class="arch-node"
-          :class="{ planned: data.planned, clickable: data.clickable }"
-          :style="{ '--accent': data.accent }"
-          :role="data.clickable ? 'link' : undefined"
-          :aria-label="data.clickable ? `查看 ${data.name}` : data.name"
-        >
-          <Handle type="target" :position="Position.Left" :connectable="false" />
-          <Handle type="source" :position="Position.Right" :connectable="false" />
-          <span class="arch-dot" />
-          <span class="arch-name">{{ data.name }}</span>
-          <span class="arch-sub">{{ data.sub }}</span>
-          <span v-if="data.status" class="arch-status">{{ data.status }}</span>
-          <span v-if="data.clickable" class="arch-go" aria-hidden="true">→</span>
-        </div>
-      </template>
-      <Background pattern-color="rgba(255,255,255,0.08)" :gap="28" />
-      <Controls :show-interactive="false" position="bottom-right" />
-    </VueFlow>
-    <p class="flow-hint">拖拽平移 · 右下角缩放 · 点击节点进入产品页 · 虚线为规划中</p>
+  <div class="flow-root">
+    <div ref="box" class="flow" :style="height === 'auto' ? undefined : { height }">
+      <VueFlow
+        :nodes="nodes"
+        :edges="edges"
+        :fit-view-on-init="false"
+        :min-zoom="0.2"
+        :max-zoom="1.6"
+        :zoom-on-scroll="false"
+        :pan-on-scroll="false"
+        :prevent-scrolling="false"
+        :nodes-draggable="false"
+        :nodes-connectable="false"
+        :elements-selectable="false"
+        @node-click="onNodeClick"
+        @nodes-initialized="onReady"
+      >
+        <template #node-arch="{ data }">
+          <div
+            class="arch-node"
+            :class="{ planned: data.planned, clickable: data.clickable }"
+            :style="{ '--accent': data.accent }"
+            :role="data.clickable ? 'link' : undefined"
+            :aria-label="data.clickable ? `查看 ${data.name}` : data.name"
+          >
+            <Handle id="t-l" type="target" :position="Position.Left" :connectable="false" />
+            <Handle id="t-t" type="target" :position="Position.Top" :connectable="false" />
+            <Handle id="t-b" type="target" :position="Position.Bottom" :connectable="false" />
+            <Handle id="s-r" type="source" :position="Position.Right" :connectable="false" />
+            <Handle id="s-t" type="source" :position="Position.Top" :connectable="false" />
+            <Handle id="s-b" type="source" :position="Position.Bottom" :connectable="false" />
+            <span class="arch-dot" />
+            <span class="arch-name">{{ data.name }}</span>
+            <span class="arch-sub">{{ data.sub }}</span>
+            <span v-if="data.status" class="arch-status">{{ data.status }}</span>
+            <span v-if="data.clickable" class="arch-go" aria-hidden="true">→</span>
+          </div>
+        </template>
+        <template #node-zone="{ data }">
+          <div class="zone">
+            <span class="zone-label">{{ data.label }}</span>
+          </div>
+        </template>
+        <template #edge-lane="edge">
+          <BaseEdge
+            :id="edge.id"
+            :path="lanePath(edge).d"
+            :marker-end="edge.markerEnd"
+            :label="edge.label"
+            :label-x="lanePath(edge).x"
+            :label-y="lanePath(edge).y"
+          />
+        </template>
+        <Background pattern-color="rgba(255,255,255,0.07)" :gap="28" />
+      </VueFlow>
+    </div>
+    <div class="flow-foot">
+      <p class="flow-hint">拖拽平移 · 点击节点进入产品页 · 虚线为规划中 · 虚线框为独立的研发基础设施</p>
+      <div class="flow-ctrl" role="group" aria-label="缩放全景图">
+        <button type="button" aria-label="缩小" @click="zoomOut()">−</button>
+        <button type="button" aria-label="放大" @click="zoomIn()">+</button>
+        <button type="button" aria-label="适应画布" @click="fitView(FIT)">适应</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -129,6 +238,9 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .flow {
   position: relative;
   width: 100%;
+  /* 与布局长宽比一致：画布随容器等比缩放，节点始终铺满 */
+  aspect-ratio: 2.15;
+  min-height: 420px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
@@ -138,12 +250,41 @@ function onNodeClick({ node }: NodeMouseEvent) {
   overflow: hidden;
 }
 
+.flow-foot {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.flow-ctrl {
+  display: flex;
+  gap: 6px;
+}
+
+.flow-ctrl button {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.flow-ctrl button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
 .flow-hint {
-  position: absolute;
-  left: 18px;
-  bottom: 12px;
   margin: 0;
-  right: 72px;
   font-size: 12px;
   color: var(--text-3);
   pointer-events: none;
@@ -151,9 +292,10 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
 .arch-node {
   position: relative;
-  width: 214px;
-  padding: 14px 16px;
-  border-radius: 16px;
+  width: 260px;
+  min-height: 112px;
+  padding: 16px 18px 14px;
+  border-radius: 18px;
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 18%, rgba(12, 14, 22, 0.96)), rgba(12, 14, 22, 0.96) 70%);
   box-shadow:
@@ -194,13 +336,14 @@ function onNodeClick({ node }: NodeMouseEvent) {
 }
 
 .arch-name {
-  font-size: 16px;
+  font-size: 19px;
+  letter-spacing: -0.01em;
   font-weight: 700;
   padding-right: 18px;
 }
 
 .arch-sub {
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text-2);
 }
@@ -208,8 +351,8 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .arch-status {
   margin-top: 6px;
   justify-self: start;
-  font-size: 11px;
-  padding: 2px 8px;
+  font-size: 12px;
+  padding: 2px 9px;
   border-radius: 999px;
   color: var(--text-2);
   border: 1px solid var(--line-strong);
@@ -224,8 +367,8 @@ function onNodeClick({ node }: NodeMouseEvent) {
 }
 
 .flow :deep(.vue-flow__edge-path) {
-  stroke: rgba(143, 179, 255, 0.55);
-  stroke-width: 1.6;
+  stroke: rgba(143, 179, 255, 0.6);
+  stroke-width: 1.8;
 }
 
 .flow :deep(.vue-flow__edge.is-planned .vue-flow__edge-path) {
@@ -239,8 +382,32 @@ function onNodeClick({ node }: NodeMouseEvent) {
 }
 
 .flow :deep(.vue-flow__edge-text) {
-  fill: rgba(235, 238, 255, 0.7);
-  font-size: 11px;
+  fill: rgba(235, 238, 255, 0.78);
+  font-size: 13px;
+}
+
+.zone {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  border-radius: 24px;
+  background: rgba(245, 158, 11, 0.04);
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.zone-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(252, 211, 77, 0.9);
+}
+
+
+.flow :deep(.vue-flow__node-zone) {
+  pointer-events: none;
 }
 
 .flow :deep(.vue-flow__handle) {
@@ -254,25 +421,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
   padding: 0;
 }
 
-.flow :deep(.vue-flow__controls) {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: none;
-  border: 1px solid var(--line-strong);
-}
 
-.flow :deep(.vue-flow__controls-button) {
-  background: rgba(16, 18, 28, 0.95);
-  border-bottom: 1px solid var(--line);
-  fill: var(--text-2);
-  color: var(--text-2);
-}
 
-.flow :deep(.vue-flow__controls-button svg) {
-  fill: currentColor;
-}
 
-.flow :deep(.vue-flow__controls-button:hover) {
-  background: rgba(30, 34, 48, 0.95);
-}
 </style>
